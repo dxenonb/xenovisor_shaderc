@@ -1,4 +1,4 @@
-use crate::token::{Lexer, Token};
+use crate::token::{Token, TokenStream};
 
 macro_rules! expect {
     ($lex:ident, $err:ident) => {
@@ -13,31 +13,31 @@ macro_rules! expect {
 macro_rules! expect_identifier {
     ($lex:ident) => {
         if let Some(Token::Text) = $lex.next() {
-            Identifier($lex.slice().to_owned())
+            Identifier($lex.slice().unwrap().to_owned())
         } else {
             return Err(ParseError::identifier($lex));
         }
     };
 }
 
-pub type Result<'source, T> = std::result::Result<(Lexer<'source>, T), ParseError<'source>>;
+pub type Result<'source, T> = std::result::Result<(TokenStream<'source>, T), ParseError<'source>>;
 
 #[derive(Debug, Clone)]
 pub struct ParseError<'source> {
-    source: WrappedLexer<'source>,
+    stream: TokenStream<'source>,
 }
 
 impl<'source> ParseError<'source> {
     // TODO
 
-    fn syntax(lex: Lexer) -> ParseError {
+    fn syntax(stream: TokenStream) -> ParseError {
         ParseError {
-            source: WrappedLexer(lex),
+            stream,
         }
     }
 
-    fn identifier(lex: Lexer) -> ParseError {
-        ParseError::syntax(lex)
+    fn identifier(stream: TokenStream) -> ParseError {
+        ParseError::syntax(stream)
     }
 }
 
@@ -48,15 +48,6 @@ impl<'source> std::fmt::Display for ParseError<'source> {
 }
 
 impl<'source> std::error::Error for ParseError<'source> {}
-
-#[derive(Clone)]
-struct WrappedLexer<'source>(Lexer<'source>);
-
-impl<'source> std::fmt::Debug for WrappedLexer<'source> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "<lexer>")
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Module {
@@ -123,50 +114,50 @@ pub enum Literal {
     Number(String),
 }
 
-pub fn module(mut lex: Lexer) -> Result<Module> {
+pub fn module(mut tokens: TokenStream) -> Result<Module> {
     let mut module = Module {
         items: Vec::new(),
     };
 
     loop {
-        if lex.clone().next().is_none() {
+        if tokens.eof() {
             break;
         }
 
-        let result = item(lex)?;
-        lex = result.0;
+        let result = item(tokens)?;
+        tokens = result.0;
         module.items.push(result.1);
     }
 
-    Ok((lex, module))
+    Ok((tokens, module))
 }
 
-pub fn item(mut lex: Lexer) -> Result<Item> {
-    if let Ok((lex, global)) = global(lex.clone()) {
-        return Ok((lex, global))
+pub fn item(tokens: TokenStream) -> Result<Item> {
+    if let Ok((tokens, global)) = global(tokens.clone()) {
+        return Ok((tokens, global))
     }
-    if let Ok((lex, function)) = function(lex.clone()) {
-        return Ok((lex, function))
+    if let Ok((tokens, function)) = function(tokens.clone()) {
+        return Ok((tokens, function))
     }
 
-    Err(ParseError::syntax(lex))
+    Err(ParseError::syntax(tokens))
 }
 
-pub fn global(mut lex: Lexer) -> Result<Item> {
-    let token = expect!(lex, syntax);
+pub fn global(mut tokens: TokenStream) -> Result<Item> {
+    let token = expect!(tokens, syntax);
 
-    let mut qualifier = match token {
+    let qualifier = match token {
         Token::In => GlobalQualifier::In,
         Token::Out => GlobalQualifier::Out,
         Token::Uniform => GlobalQualifier::Uniform,
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     };
 
-    let identifier = expect_identifier!(lex);
+    let identifier = expect_identifier!(tokens);
 
-    match expect!(lex, syntax) {
+    match expect!(tokens, syntax) {
         Token::Semicolon => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
 
     let global = Global {
@@ -174,46 +165,46 @@ pub fn global(mut lex: Lexer) -> Result<Item> {
         identifier,
     };
 
-    Ok((lex, Item::Global(global)))
+    Ok((tokens, Item::Global(global)))
 }
 
-pub fn function(mut lex: Lexer) -> Result<Item> {
-    match expect!(lex, syntax) {
+pub fn function(mut tokens: TokenStream) -> Result<Item> {
+    match expect!(tokens, syntax) {
         Token::Function => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
 
-    let name = expect_identifier!(lex);
+    let name = expect_identifier!(tokens);
 
-    match expect!(lex, syntax) {
+    match expect!(tokens, syntax) {
         Token::LeftParen => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
-    match expect!(lex, syntax) {
+    match expect!(tokens, syntax) {
         Token::RightParen => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
 
-    let (lex, body) = block(lex)?;
+    let (tokens, body) = block(tokens)?;
 
     let function = Function {
         name,
         body,
     };
 
-    Ok((lex, Item::Function(function)))
+    Ok((tokens, Item::Function(function)))
 }
 
-pub fn block(mut lex: Lexer) -> Result<Block> {
-    match expect!(lex, syntax) {
+pub fn block(mut tokens: TokenStream) -> Result<Block> {
+    match expect!(tokens, syntax) {
         Token::LeftBrace => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
-    match expect!(lex, syntax) {
+    match expect!(tokens, syntax) {
         Token::RightBrace => {},
-        _ => return Err(ParseError::syntax(lex)),
+        _ => return Err(ParseError::syntax(tokens)),
     }
 
     let block = Block { statements: Vec::new() };
-    Ok((lex, block))
+    Ok((tokens, block))
 }

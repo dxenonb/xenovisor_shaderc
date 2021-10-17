@@ -1,15 +1,18 @@
-use logos::Logos;
-use rust_shaders::token::Token;
-
+use rust_shaders::token::{TokenStream};
 
 fn main() {
-    let (_, module) = rust_shaders::syntax::module(Token::lexer("
+    let source = "
         in foo;
         out bar;
         uniform baz;
 
         fn main() {}
-    ")).expect("failed to parse");
+    ";
+
+    let buffer = TokenStream::buffer(source);
+    let stream = TokenStream::new(&buffer, source);
+
+    let (_, module) = rust_shaders::syntax::module(stream).expect("failed to parse");
 
     println!("Parsing complete!");
     println!("{:?}", module);
@@ -79,6 +82,13 @@ fn main() {
             mod::pbr::vert > mod::pbr::geo > mod::pbr::frag
         verify the required outputs for the stages match up
             analyze hir.inputs()/hir.outputs()
+
+    externs, two approaches:
+        TODO: define with FQN?
+        1) only exists loaded into current scope; other calls must `use` it by importing
+            from the containing module; compiler will require FQN if multiple definitions are given
+        2) externs get dumped into a single local scope, and multiple definitions is always no bueno
+            (unless maybe they are the same definition)
      */
 }
 
