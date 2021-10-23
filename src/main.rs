@@ -9,12 +9,16 @@ declare type Material;
 
 use extern::Material; // , Shade};
 
-use root::frag;
+fn frag() -> Vec4 {
+
+}
 "#;
 
 fn main() {
     let buffer = TokenStream::buffer(SOURCE);
     let stream = TokenStream::new(&buffer, SOURCE);
+
+    println!("working with stream {:?}", &buffer);
 
     let (_, module) = match rust_shaders::syntax::module(stream) {
         Err(err) => {

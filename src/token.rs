@@ -31,6 +31,8 @@ pub enum Token {
     // functions
     #[token("fn")]
     Function,
+    #[token("->")]
+    RightArrow,
 
     // control flow
     #[token("if")]
@@ -69,7 +71,7 @@ pub enum Token {
     CloseComment,
 
     // misc
-    #[regex("[a-zA-Z]+")]
+    #[regex("[a-zA-Z][a-zA-Z0-9]*")]
     Text,
     #[error]
     #[regex(r"[ \t\r\n\f]+", logos::skip)]

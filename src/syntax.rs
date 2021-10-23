@@ -44,8 +44,9 @@ macro_rules! expect_identifier {
 
 macro_rules! return_if {
     ($result:expr) => {
-        if let Ok(result) = $result {
-            return Ok(result);
+        match $result {
+            Ok(result) => return Ok(result),
+            Err(err) => err,
         }
     };
 }
@@ -82,7 +83,7 @@ impl<'source> std::fmt::Display for ParseError<'source> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(fmt, "ParseError <undefined> at \"")?;
         match self.stream.slice() {
-            Some(text) => write!(fmt, "{}\" {:?}", text, &self.detail),
+            Some(text) => write!(fmt, "{}\"; detail: {:?}", text, &self.detail),
             None => write!(fmt, "<eof>")
         }
 
@@ -162,7 +163,7 @@ pub struct Identifier(String);
 #[derive(Debug, Clone)]
 pub struct Function {
     name: Identifier,
-    // return_type,
+    return_type: Option<TypeName>,
     // arguments,
     body: Block,
 }
@@ -215,11 +216,24 @@ pub fn module(mut tokens: TokenStream) -> Result<Module> {
 }
 
 pub fn item(tokens: TokenStream) -> Result<Item> {
-    return_if!(use_item(tokens.clone()));
-    return_if!(declare_item(tokens.clone()));
-    return_if!(global(tokens.clone()));
-    // return_if!(function(tokens.clone()));
-
+    let upcoming = tokens.peek();
+    if let Some(intention) = upcoming {
+        match intention {
+            Token::Use => {
+                return use_item(tokens.clone());
+            },
+            Token::Declare => {
+                return declare_item(tokens.clone());
+            },
+            Token::Uniform | Token::In | Token::Out => {
+                return global(tokens.clone());
+            },
+            Token::Function => {
+                return function(tokens.clone());
+            },
+            _ => {},
+        }
+    }
     Err(ParseError::syntax(tokens, "expected item"))
 }
 
@@ -250,7 +264,7 @@ pub fn declare_item(tokens: TokenStream) -> Result<Item> {
     let into_item = |(tokens, d)| (tokens, Item::Declare(d));
     return_if!(declare_type(tokens.clone()).map(into_item));
     return_if!(declare_const(tokens.clone()).map(into_item));
-    Err(ParseError::syntax(tokens, "expected item"))
+    Err(ParseError::syntax(tokens, "expected declaration"))
 }
 
 pub fn declare_type(mut tokens: TokenStream) -> Result<Declare> {
@@ -307,4 +321,34 @@ pub fn global(mut tokens: TokenStream) -> Result<Item> {
     };
 
     Ok((tokens, Item::Global(global)))
+}
+
+pub fn function(mut tokens: TokenStream) -> Result<Item> {
+    tokens = expect_sequence!(tokens, Token::Function)?;
+
+    let name = expect_identifier!(tokens);
+
+    tokens = expect_sequence!(tokens, Token::LeftParen, Token::RightParen)?;
+
+    let mut return_type = None;
+    match tokens.peek() {
+        Some(Token::LeftBrace) => {},
+        _ => {
+            tokens = expect_sequence!(tokens, Token::RightArrow)?;
+            let result = type_name(tokens)?;
+            tokens = result.0;
+            return_type = Some(result.1);
+        },
+    }
+
+    // TODO: blocks, let (tokens, body) = block(tokens)?;
+    tokens = expect_sequence!(tokens, Token::LeftBrace, Token::RightBrace)?;
+
+    let function = Function {
+        name,
+        body: Block { statements: Vec::new() },
+        return_type,
+    };
+
+    Ok((tokens, Item::Function(function)))
 }
