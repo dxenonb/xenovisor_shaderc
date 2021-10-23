@@ -98,7 +98,7 @@ impl<'a> TokenStream<'a> {
     }
 
     pub fn eof(&self) -> bool {
-        self.rem.len() == 0
+        self.peek().is_none()
     }
 
     pub fn peek(&self) -> Option<&Token> {
@@ -293,5 +293,45 @@ mod test {
         assert_eq!(stream.next().unwrap(), &Token::Function);
         assert_eq!(stream.skip_comments(), 5, "buffer: {:?}", &buffer);
         assert_eq!(stream.next().unwrap(), &Token::Let);
+    }
+
+    #[test]
+    fn peek_skips_comments() {
+        const SOURCE: &str = "
+            uniform
+            // apple
+            banana
+        ";
+        let buffer = TokenStream::buffer(SOURCE);
+        let mut stream = TokenStream::new(&buffer, SOURCE);
+
+        assert_eq!(stream.next().unwrap(), &Token::Uniform);
+        assert_eq!(stream.peek().unwrap(), &Token::Text);
+    }
+
+    #[test]
+    fn eof_aware() {
+        const SOURCE: &str = "
+            uniform
+        ";
+        let buffer = TokenStream::buffer(SOURCE);
+        let mut stream = TokenStream::new(&buffer, SOURCE);
+
+        assert_eq!(stream.next().unwrap(), &Token::Uniform);
+        assert!(stream.eof());
+        assert_eq!(stream.next(), None);
+    }
+
+    #[test]
+    fn eof_comment_aware() {
+        const SOURCE: &str = "
+            uniform
+            // apple
+        ";
+        let buffer = TokenStream::buffer(SOURCE);
+        let mut stream = TokenStream::new(&buffer, SOURCE);
+
+        assert_eq!(stream.next().unwrap(), &Token::Uniform);
+        assert!(stream.eof());
     }
 }
