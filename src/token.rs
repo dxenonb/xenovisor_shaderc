@@ -80,6 +80,7 @@ pub enum Token {
 pub struct TokenStream<'a> {
     rem: &'a [(Token, Span)],
     source: &'a str,
+    prev: Option<&'a str>,
 }
 
 impl<'a> TokenStream<'a> {
@@ -92,6 +93,7 @@ impl<'a> TokenStream<'a> {
         TokenStream {
             rem: buffer,
             source,
+            prev: None,
         }
     }
 
@@ -106,9 +108,14 @@ impl<'a> TokenStream<'a> {
 
     pub fn next(&mut self) -> Option<&Token> {
         self.rem = &self.rem[self.skip_comments()..];
-        let next = self.rem.get(0).map(|(token, _)| token);
+        let (next, span) = self.rem.get(0)?;
+        self.prev = self.source.get(span.clone());
         self.rem = &self.rem[1..];
-        next
+        Some(next)
+    }
+
+    pub fn slice_prev(&self) -> Option<&str> {
+        self.prev
     }
 
     pub fn slice(&self) -> Option<&str> {

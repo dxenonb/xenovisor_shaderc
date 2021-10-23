@@ -1,21 +1,31 @@
 use rust_shaders::token::{TokenStream};
 
+// declare fn shade(scene: Scene, material: Material, object: Object) -> vec4;
+const SOURCE: &'static str = r#"
+uniform scene: Scene;
+uniform material: Material;
+
+declare type Material;
+
+use extern::Material; // , Shade};
+
+use root::frag;
+"#;
+
 fn main() {
-    let source = "
-        in foo;
-        out bar;
-        uniform baz;
+    let buffer = TokenStream::buffer(SOURCE);
+    let stream = TokenStream::new(&buffer, SOURCE);
 
-        fn main() {}
-    ";
-
-    let buffer = TokenStream::buffer(source);
-    let stream = TokenStream::new(&buffer, source);
-
-    let (_, module) = rust_shaders::syntax::module(stream).expect("failed to parse");
+    let (_, module) = match rust_shaders::syntax::module(stream) {
+        Err(err) => {
+            println!("failed to parse: {}", err);
+            return;
+        },
+        Ok(result) => result,
+    };
 
     println!("Parsing complete!");
-    println!("{:?}", module);
+    println!("{:#?}", module);
 
     /*
     generating glsl
