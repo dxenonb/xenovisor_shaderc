@@ -30,7 +30,7 @@ impl Writer for DefaultWriter {
         contents: &mut dyn Read,
     ) -> io::Result<()> {
         match target {
-            Glsl => {},
+            config::Target::Glsl => {},
         }
 
         let suffix = match stage {
@@ -63,7 +63,7 @@ impl Compiler {
 
     }
 
-    pub fn declare<S1: AsRef<str>, S2: AsRef<str>, I: IntoIterator<Item=(S1, config::EnvVar<S2>)>>(&self, env: I) {
+    pub fn declare<S1: AsRef<str>, S2: AsRef<str>, I: IntoIterator<Item=(S1, config::EnvVar<S2>)>>(&self, _env: I) {
 
     }
 
@@ -79,7 +79,7 @@ pub struct Queries {
 }
 
 impl Queries {
-    pub fn run_code_gen<S: AsRef<str>, W: Writer>(&self, pipeline: config::Pipeline<S>, mut w: W) {
+    pub fn run_code_gen<S: AsRef<str>, W: Writer>(&self, _pipeline: config::Pipeline<S>, mut _w: W) {
 
     }
 }
@@ -102,7 +102,7 @@ impl Generator {
 
     /// Generates Rust code to generate shaders from fragments, without full
     /// compiler runtime.
-    pub fn glsl_static_runtime<S: AsRef<str>, I: IntoIterator<Item=S>>(&self, includes: I) {
+    pub fn glsl_static_runtime<S: AsRef<str>, I: IntoIterator<Item=S>>(&self, _includes: I) {
         // TODO: refine this
 
         // let fragments = self.compiler.query()
