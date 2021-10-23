@@ -264,4 +264,27 @@ mod test {
         assert_eq!(stream.skip_comments(), 6);
         assert_eq!(stream.next().unwrap(), &Token::Let);
     }
+
+    #[test]
+    #[ignore = "sequential comments not supported yet"]
+    fn skips_sequential_block_comments() {
+        const SOURCE: &str = "
+            uniform // billy bob
+            /*
+            */
+            // foo
+            fn
+            /**/
+            /**/
+            let
+        ";
+        let buffer = TokenStream::buffer(SOURCE);
+        let mut stream = TokenStream::new(&buffer, SOURCE);
+
+        assert_eq!(stream.next().unwrap(), &Token::Uniform);
+        assert_eq!(stream.skip_comments(), 4, "buffer: {:?}", &buffer);
+        assert_eq!(stream.next().unwrap(), &Token::Function);
+        assert_eq!(stream.skip_comments(), 5, "buffer: {:?}", &buffer);
+        assert_eq!(stream.next().unwrap(), &Token::Let);
+    }
 }
