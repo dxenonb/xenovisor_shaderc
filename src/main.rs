@@ -1,4 +1,4 @@
-use rust_shaders::token::{TokenStream};
+use xenovisor_shaderc::token::{TokenStream};
 
 // declare fn shade(scene: Scene, material: Material, object: Object) -> vec4;
 const SOURCE: &'static str = r#"
@@ -20,7 +20,7 @@ fn main() {
 
     println!("working with stream {:?}", &buffer);
 
-    let (_, module) = match rust_shaders::syntax::module(stream) {
+    let (_, module) = match xenovisor_shaderc::syntax::module(stream) {
         Err(err) => {
             println!("failed to parse: {}", err);
             return;
