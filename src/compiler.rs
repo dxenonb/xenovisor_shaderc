@@ -111,7 +111,7 @@ impl<'c> Queries<'c> {
             pipeline.fragment.expect("must declare frag shader"),
         ];
         let asts = self.compiler.driver.ast(&self.compiler.session, &pipeline)?;
-        let contents: String = asts.map(|a| format!("{:?}\n", a)).collect();
+        let contents: String = asts.map(|a| format!("{:#?}\n", a)).collect();
         w.write(&config::Target::Glsl, &config::ShaderStage::Vertex, contents.as_bytes())?;
         // let valid = self.linker().validate_pipeline(vs, fs);
         // self.validate_pipeline(&vs, &fs);
