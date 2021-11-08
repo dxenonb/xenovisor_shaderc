@@ -110,11 +110,9 @@ impl<'c> Queries<'c> {
             pipeline.vertex.expect("must declare vertex shader"),
             pipeline.fragment.expect("must declare frag shader"),
         ];
-        let mut asts = self.compiler.driver.ast(&self.compiler.session, &pipeline)?;
-        let vs = format!("{:?}", asts.next().unwrap());
-        let fs = format!("{:?}", asts.next().unwrap());
-        w.write(&config::Target::Glsl, &config::ShaderStage::Vertex, vs.as_bytes())?;
-        w.write(&config::Target::Glsl, &config::ShaderStage::Fragment, fs.as_bytes())?;
+        let asts = self.compiler.driver.ast(&self.compiler.session, &pipeline)?;
+        let contents: String = asts.map(|a| format!("{:?}\n", a)).collect();
+        w.write(&config::Target::Glsl, &config::ShaderStage::Vertex, contents.as_bytes())?;
         // let valid = self.linker().validate_pipeline(vs, fs);
         // self.validate_pipeline(&vs, &fs);
         // there will be internal HIR info built but the returned structure
