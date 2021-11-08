@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenStream};
+use crate::{error::CompilerError, token::{Token, TokenStream}};
 
 macro_rules! expect {
     ($lex:ident, $err:ident) => {
@@ -108,7 +108,7 @@ pub enum Item {
 
 #[derive(Debug, Clone)]
 pub struct Use {
-    path: Vec<Identifier>,
+    pub path: Vec<Identifier>,
 }
 
 #[derive(Debug, Clone)]
@@ -160,6 +160,18 @@ pub enum GlobalQualifier {
 #[derive(Debug, Clone)]
 pub struct Identifier(String);
 
+impl Identifier {
+    pub fn str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Identifier {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Function {
     name: Identifier,
@@ -197,6 +209,15 @@ pub enum Literal {
     Number(String),
 }
 
+pub fn parse_module(source: &str) -> std::result::Result<Module, CompilerError> {
+    let buffer = TokenStream::buffer(source);
+    let stream = TokenStream::new(&buffer, source);
+
+    let (_, module) = module(stream)?;
+
+    Ok(module)
+}
+
 pub fn module(mut tokens: TokenStream) -> Result<Module> {
     let mut module = Module {
         items: Vec::new(),
@@ -220,7 +241,7 @@ pub fn item(tokens: TokenStream) -> Result<Item> {
     if let Some(intention) = upcoming {
         match intention {
             Token::Use => {
-                return use_item(tokens.clone());
+                return use_item(tokens.clone()).map(|(s, u)| (s, Item::Use(u)));
             },
             Token::Declare => {
                 return declare_item(tokens.clone());
@@ -237,7 +258,7 @@ pub fn item(tokens: TokenStream) -> Result<Item> {
     Err(ParseError::syntax(tokens, "expected item"))
 }
 
-pub fn use_item(mut tokens: TokenStream) -> Result<Item> {
+pub fn use_item(mut tokens: TokenStream) -> Result<Use> {
     tokens = expect_sequence!(tokens, Token::Use)?;
     let mut path = Vec::new();
     loop {
@@ -256,8 +277,7 @@ pub fn use_item(mut tokens: TokenStream) -> Result<Item> {
             }
         }
     }
-    let item = Item::Use(Use { path });
-    Ok((tokens, item))
+    Ok((tokens, Use { path }))
 }
 
 pub fn declare_item(tokens: TokenStream) -> Result<Item> {

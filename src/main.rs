@@ -1,50 +1,31 @@
-use xenovisor_shaderc::token::{TokenStream};
+use xenovisor_shaderc::{compiler::{DefaultWriter, generate}, config::Config};
 
 // declare fn shade(scene: Scene, material: Material, object: Object) -> vec4;
-const SOURCE: &'static str = r#"
-uniform scene: Scene;
-uniform material: Material;
+// const SOURCE: &'static str = r#"
+// uniform scene: Scene;
+// uniform material: Material;
 
-declare type Material;
+// declare type Material;
 
-use extern::Material; // , Shade};
+// use extern::Material; // , Shade};
 
-fn frag() -> Vec4 {
+// fn frag() -> Vec4 {
 
-}
-"#;
+// }
+// "#;
 
 fn main() {
-    let buffer = TokenStream::buffer(SOURCE);
-    let stream = TokenStream::new(&buffer, SOURCE);
-
-    println!("working with stream {:?}", &buffer);
-
-    let (_, module) = match xenovisor_shaderc::syntax::module(stream) {
-        Err(err) => {
-            println!("failed to parse: {}", err);
-            return;
-        },
-        Ok(result) => result,
-    };
-
-    println!("Parsing complete!");
-    println!("{:#?}", module);
+    let generator = generate(
+        "local/shaders",
+        Config::empty_env(),
+        Config::default()
+    );
+    generator.glsl(
+        ("use main::vert;", "use main::frag;"),
+        DefaultWriter::new("local/shaders-build".into()),
+    );
 
     /*
-    generating glsl
-
-    write the version out
-
-    write definitions (hir.definitions())
-
-    write globals (hir.[globals|inputs|outputs]() -> list of fragments)
-
-    write functions in reverse dependency order (hir.functions())
-        identify main function (function that writes outputs)
-        check the call tree
-            check recursive nodes
-        walk the call tree
 
     build symbol table
         read type definitions

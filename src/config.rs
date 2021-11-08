@@ -20,6 +20,12 @@ impl<T: AsRef<Path>> ConfigSource for T {
 pub struct Config {
 }
 
+impl Config {
+    pub fn empty_env() -> impl IntoIterator<Item=(&'static str, EnvVar<&'static str>)> {
+        []
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {}
@@ -51,5 +57,5 @@ pub struct Pipeline<S> {
 }
 
 pub struct Fragment {
-    
+
 }
